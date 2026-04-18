@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+// 引入 OpenZeppelin NFT 標準庫
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract RedWineNFT is ERC721URIStorage, Ownable {
+    uint256 private _nextTokenId; // 自動計算下一瓶酒的編號
+
+    // 構造函數：部署時設定 NFT 名稱與代號
+    // 例如：name="Red Wine Collection", symbol="RWNFT"
+    constructor() ERC721("Red Wine Collection", "RWNFT") Ownable(msg.sender) {}
+
+    // 功能 1：鑄造 NFT (Mint) - 只有酒廠(Owner)可以執行
+    // to: 買家地址
+    // wineMetadataURI: 這一瓶酒的故事網址 (JSON)，包含年份、產地、照片
+    function mintWine(address to, string memory wineMetadataURI) public onlyOwner {
+        uint256 tokenId = _nextTokenId;
+        _nextTokenId++;
+
+        _safeMint(to, tokenId);           // 產生獨一無二的編號
+        _setTokenURI(tokenId, wineMetadataURI); // 綁定這瓶酒的專屬故事
+    }
+
+    // 功能 2：提貨核銷 (Burn/Redeem)
+    // 當持有者真的要把紅酒拿走喝掉時，銷毀這張 NFT 證明已兌換
+    function redeemWine(uint256 tokenId) public {
+        require(ownerOf(tokenId) == msg.sender, "You are not the owner of this wine");
+        _burn(tokenId);
+        // 論文解釋：此動作代表實體酒瓶開封，數位權利憑證註銷，防止重複二次交易。
+    }
+
+    // 功能 3：查詢目前總共發行了多少瓶
+    function totalWines() public view returns (uint256) {
+        return _nextTokenId;
+    }
+}
